@@ -7,7 +7,10 @@ import Effect.Console (log)
 import Data.List
 import Data.Generic.Rep
 import Data.Generic.Rep.Show (genericShow)
---import GLPK
+import Data.Foldable
+import GLPK
+import Foreign.Object as FO
+import Data.Maybe
 
 -- a spacy concact
 
@@ -53,6 +56,8 @@ derive instance genericVar :: Generic Var _
 derive instance genericLinExpr :: Generic LinExpr _
 derive instance genericAffineExpr :: Generic AffineExpr _
 derive instance genericConstraint :: Generic Constraint _
+derive instance genericCObjective :: Generic Objective _
+derive instance genericProblem :: Generic Problem _
 
 instance showVar :: Show Var where
   show x = genericShow x
@@ -61,6 +66,10 @@ instance showLinExpr :: Show LinExpr where
 instance showAffineExpr :: Show AffineExpr where
   show x = genericShow x
 instance showConstraint :: Show Constraint where
+  show x = genericShow x
+instance showObjective :: Show Objective where
+  show x = genericShow x
+instance showProblem :: Show Problem where
   show x = genericShow x
 
 cmpConstraint :: Ordering -> AffineExpr -> AffineExpr -> Constraint
@@ -92,15 +101,12 @@ var s = AffineExpr (LinExpr ({coeff : 1.0, var : (Var s)} : Nil)) 0.0
 
 
 
+dropConstant :: AffineExpr -> LinExpr
+dropConstant (AffineExpr x b) = x
 
-example :: Constraint
-example =  var "x1" :+ var "x2" :+ var "x3" :== var "x4"
 
-asum :: List AffineExpr -> AffineExpr
+asum :: forall f. Foldable f => f AffineExpr -> AffineExpr
 asum = foldl (:+) azero
-
-xs = map (\n -> var ("x" <> show n)) (1 .. 10)
-
 
 
 aadd :: AffineExpr -> AffineExpr -> AffineExpr
@@ -169,8 +175,25 @@ exampleProblem = (Problem
   ((Constraint (AffineExpr (LinExpr Nil) 1.0) (GT) (AffineExpr (LinExpr Nil) 1.0)):Nil)
 )
 
+example :: Constraint
+example =  var "x1" :+ var "x2" :+ var "x3" :== var "x4"
+
+xs = map (\n -> var ("x" <> show n)) (1 .. 10)
+exampleProblem2 = Problem (Max $ dropConstant $ (asum xs)) (xpos <> xmax)  where
+     xpos = map (\x -> x :>= azero) xs
+     xmax = map (\x -> x :<= apure 3.0) xs
+
+
+
+
+lookupVar :: FO.Object Number -> Var -> Maybe Number
+lookupVar o (Var s) = FO.lookup s o 
+{-
+lookupVar' :: FO.Object Number -> AffineExpr -> Maybe Number
+lookupVar' o (Var s) = FO.lookup s o  
+-} 
 main :: Effect Unit
 main = do
   --lp <- glp_create_prob
   --pure unit
-  log (printProblem exampleProblem)
+  log (printProblem exampleProblem2)
