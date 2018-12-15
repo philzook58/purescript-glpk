@@ -5,6 +5,8 @@ import Prelude
 import Effect (Effect)
 import Effect.Console (log)
 import Data.List
+import Data.Generic.Rep
+import Data.Generic.Rep.Show (genericShow)
 --import GLPK
 
 -- a spacy concact
@@ -39,12 +41,84 @@ x (+++) y = x +_+ "+" +_+ y
 
 
 data Var = Var String
-data LinExpr = LinExpr (List {coeff :: Number, var :: Var})  -- Ax
+type Term = {coeff :: Number, var :: Var}
+data LinExpr = LinExpr (List Term)  -- Ax
 data AffineExpr = AffineExpr LinExpr Number -- Ax + b
 data Constraint = Constraint AffineExpr Ordering AffineExpr -- Ax + b <= Bx + c
 data Objective = Min LinExpr | Max LinExpr
 data Problem = Problem Objective (List Constraint)
 
+
+derive instance genericVar :: Generic Var _
+derive instance genericLinExpr :: Generic LinExpr _
+derive instance genericAffineExpr :: Generic AffineExpr _
+derive instance genericConstraint :: Generic Constraint _
+
+instance showVar :: Show Var where
+  show x = genericShow x
+instance showLinExpr :: Show LinExpr where
+  show x = genericShow x
+instance showAffineExpr :: Show AffineExpr where
+  show x = genericShow x
+instance showConstraint :: Show Constraint where
+  show x = genericShow x
+
+cmpConstraint :: Ordering -> AffineExpr -> AffineExpr -> Constraint
+cmpConstraint w x y = Constraint x w y
+lte :: AffineExpr -> AffineExpr -> Constraint
+lte = cmpConstraint LT
+gte :: AffineExpr -> AffineExpr -> Constraint
+gte = cmpConstraint GT
+eq :: AffineExpr -> AffineExpr -> Constraint
+eq = cmpConstraint EQ
+
+infixl 4 lte as :<=
+infixl 4 gte as :>=
+infixl 4 eq as :==
+
+--smul :: Number -> Var -> AffineExpr
+--smul x v = AffineExpr (LinExpr ({coeff : x, var : v} : Nil)) 0.0
+
+
+
+smul :: Number -> AffineExpr -> AffineExpr
+smul n (AffineExpr (LinExpr ls) b) = AffineExpr (LinExpr (map (termmul n) ls)) (b*n) where
+     termmul n' {coeff : c, var : v} = {coeff : c * n', var : v }
+infixl 6 smul as :*
+
+
+var :: String -> AffineExpr
+var s = AffineExpr (LinExpr ({coeff : 1.0, var : (Var s)} : Nil)) 0.0
+
+
+
+
+example :: Constraint
+example =  var "x1" :+ var "x2" :+ var "x3" :== var "x4"
+
+asum :: List AffineExpr -> AffineExpr
+asum = foldl (:+) azero
+
+xs = map (\n -> var ("x" <> show n)) (1 .. 10)
+
+
+
+aadd :: AffineExpr -> AffineExpr -> AffineExpr
+aadd (AffineExpr (LinExpr x) b) (AffineExpr (LinExpr y) c) = AffineExpr (LinExpr (x <> y)) (b + c) 
+infixl 6 aadd as :+
+
+apure :: Number -> AffineExpr
+apure n = (AffineExpr (LinExpr Nil) n)
+azero = apure 0.0
+aone = apure 1.0 
+{-
+instance semiringAffineExpr :: SemiRing AffineExpr where
+  add (AffineExpr (LinExpr x) b) (AffineExpr (LinExpr y) c) = AffineExpr (LinExpr (x <> y) (b + c)) 
+  zero = (AffineExpr Nil 0.0)
+  mul =  (AffineExpr (LinExpr (({coeff : 0.0, var : Var "NO MULS YOU JACKASS"}) : Nil)) 0.0)  
+  one = (AffineExpr Nil 1.0) 
+  append (LinExpr x) (LinExpr y) = LinExpr (x <> y)
+-}
 {-
 (:<=) :: AffineExpr -> AffineExpr -> Constraint
 (:==) :: AffineExpr -> AffineExpr -> Constraint
