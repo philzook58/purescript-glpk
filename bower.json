@@ -12,7 +12,8 @@
     "purescript-effect": "^2.0.0",
     "glpk.js": "https://github.com/hgourvest/glpk.js.git",
     "purescript-functions": "^4.0.0",
-    "purescript-arrays": "^5.1.1"
+    "purescript-arrays": "^5.1.1",
+    "purescript-foreign-object": "^1.1.0"
   },
   "devDependencies": {
     "purescript-psci-support": "^4.0.0"
