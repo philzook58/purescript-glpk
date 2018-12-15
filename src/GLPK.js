@@ -12,7 +12,7 @@ exports.pow = function(x) {
 // var glpk = require("glpk.js");
 
 "use strict";
-var glpk = require('glpk.js/dist/glpk.min.js');
+var glpk = require('./glpk.js/dist/glpk.min.js');
 
 /*
 exports.pow = function(x) {
