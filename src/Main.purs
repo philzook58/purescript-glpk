@@ -4,23 +4,32 @@ import Prelude
 
 import Effect (Effect)
 import Effect.Console (log)
-import Data.Array
-import GLPK
+import Data.List
+--import GLPK
 
 -- a spacy concact
 
-spaceAppend :: String -> String -> String
-spaceAppend x y = x <> " " <> " " <> y 
+--spaceAppend :: String -> String -> String
+--spaceAppend x y = x <> " " <> " " <> y 
 
 -- purescript has to define infix operators using a seperate syntax
 -- +_+ is an "operator section" a weird purescipt feature
 -- it appears operators can't have characters in them
-infix 5 spaceAppend as +++
+infixr 5 spaceAppend as +$+
+-- a spacey concact
+spaceAppend :: String -> String -> String
+spaceAppend x y = x <> " " <> y 
+
+infixr 5 newlineAppend as +\+
 -- a newliney concact
 newlineAppend :: String -> String -> String
 newlineAppend x y = x <> "\n" <> y 
 
-infix 5 newlineAppend as ++:
+
+infixr 5 plusAppend as +++
+-- a newliney concact
+plusAppend :: String -> String -> String
+plusAppend x y = x +$+ "+" +$+ y 
 
 -- a plussy concact
 {-
@@ -30,11 +39,11 @@ x (+++) y = x +_+ "+" +_+ y
 
 
 data Var = Var String
-data LinExpr = LinExpr (Array {coeff :: Number, var :: Var})  -- Ax
+data LinExpr = LinExpr (List {coeff :: Number, var :: Var})  -- Ax
 data AffineExpr = AffineExpr LinExpr Number -- Ax + b
-data Constraint = Contraint AffineExpr Ordering AffineExpr -- Ax + b <= Bx + c
+data Constraint = Constraint AffineExpr Ordering AffineExpr -- Ax + b <= Bx + c
 data Objective = Min LinExpr | Max LinExpr
-data Problem = Problem Objective (Array Constraint)
+data Problem = Problem Objective (List Constraint)
 
 {-
 (:<=) :: AffineExpr -> AffineExpr -> Constraint
@@ -48,53 +57,46 @@ data Problem = Problem Objective (Array Constraint)
 instance semigroupAffineExpr :: Semigroup LinExpr where
   append (LinExpr x) (LinExpr y) = LinExpr (x <> y)
 
-
-
-{-
-printProblem ::
-printProblem (Problem obj constraints) =       where
-												= printObjective obj
--}
 printVar :: Var -> String
 printVar (Var s) = s
 
-{-
-printVars :: [Var] -> String
-printVars (Var s):vars = s <> "\n"
-prinvVars (Var s):[] = s
-
--}
-
--- You can pattern match on Lists and Sequences, but not arrays
-{-
 printVars :: List Var -> String
-printVars [] = mempty
-printVars (v:vars) = (printVar v) <> "\n" <> (printVars vars)
--}
-printVars :: Array Var -> String
-printVars = foldMap (\v -> (printVar v) <> "\n") 
+printVars = foldl (\acc v -> acc +\+ (printVar v)) mempty
 
+printTerm :: {coeff :: Number, var :: Var} -> String
+printTerm {coeff, var} = (show coeff) +$+ (printVar var)
 
-{-
+printComp :: Ordering -> String
+printComp LT = "<="
+printComp GT = ">="
+printComp EQ = "=="
+
 printObjective :: Objective -> String
-printObjective (Min expr) = "Minimize" +n+ "obj:" +_+ (printLinExpr expr)
-printObjective (Max expr) = "Maximize" +n+ "obj:" +_+ (printLinExpr expr)
+printObjective (Min expr) = "Minimize" +\+ "obj:" +$+ (printLinExpr expr)
+printObjective (Max expr) = "Maximize" +\+ "obj:" +$+ (printLinExpr expr)
 
 printLinExpr :: LinExpr -> String
-printLinExpr (LinExpr ((c, Var var):terms)) = (show c) +_+ var +++ (printLinExpr terms)
-printLinExpr (LinExpr []) = ""
+printLinExpr (LinExpr terms) = foldl (\acc t -> acc +++ (printTerm t)) mempty terms
 
 printAffineExpr :: AffineExpr -> String
-printAffineExpr (AffineExpr linExpr const) = (printLinExpr linExpr) +++ const
+printAffineExpr (AffineExpr linExpr const) = (printLinExpr linExpr) +++ (show const)
 
 printConstraint :: Constraint -> String
-printConstraint (Constraint affineExpr1 cmp affineExpr2) =  (printAffineExpr affineExpr1) +_+ (show cmp) +_+ (printAffineExpr affineExpr2)
--}
+printConstraint (Constraint affineExpr1 cmp affineExpr2) =  (printAffineExpr affineExpr1) +$+ (printComp cmp) +$+ (printAffineExpr affineExpr2)
 
+printConstraints :: List Constraint -> String
+printConstraints cons = "Subject To" <> (foldl (\acc c -> acc +\+ (printConstraint c)) mempty cons)
 
+printProblem :: Problem -> String
+printProblem (Problem obj constraints) = (printObjective obj) +\+ (printConstraints constraints) +\+ "End"
+
+exampleProblem = (Problem 
+  (Min (LinExpr ({coeff:5.0, var:(Var "v1")}:{coeff:6.0, var:(Var "v2")}:Nil))) 
+  ((Constraint (AffineExpr (LinExpr Nil) 1.0) (GT) (AffineExpr (LinExpr Nil) 1.0)):Nil)
+)
 
 main :: Effect Unit
 main = do
-  log "Hello sailor!"
-  lp <- glp_create_prob
-  pure unit
+  --lp <- glp_create_prob
+  --pure unit
+  log (printProblem exampleProblem)
