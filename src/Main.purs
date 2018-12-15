@@ -104,10 +104,14 @@ var s = AffineExpr (LinExpr ({coeff : 1.0, var : (Var s)} : Nil)) 0.0
 dropConstant :: AffineExpr -> LinExpr
 dropConstant (AffineExpr x b) = x
 
+dropVars :: AffineExpr -> Number
+dropVars (AffineExpr x b) = b
 
 asum :: forall f. Foldable f => f AffineExpr -> AffineExpr
 asum = foldl (:+) azero
 
+aminus :: AffineExpr -> AffineExpr -> AffineExpr
+aminus x y = x :+ (-1.0 :* y)
 
 aadd :: AffineExpr -> AffineExpr -> AffineExpr
 aadd (AffineExpr (LinExpr x) b) (AffineExpr (LinExpr y) c) = AffineExpr (LinExpr (x <> y)) (b + c) 
@@ -162,7 +166,9 @@ printAffineExpr :: AffineExpr -> String
 printAffineExpr (AffineExpr linExpr const) = (printLinExpr linExpr) +++ (show const)
 
 printConstraint :: Constraint -> String
-printConstraint (Constraint affineExpr1 cmp affineExpr2) =  (printAffineExpr affineExpr1) +$+ (printComp cmp) +$+ (printAffineExpr affineExpr2)
+printConstraint (Constraint affineExpr1 cmp affineExpr2) =  (printLinExpr lhs) +$+ (printComp cmp) +$+ rhs where
+   lhs = dropConstant $ affineExpr1 `aminus` affineExpr2 
+   rhs = show $ (dropVars affineExpr2) - (dropVars affineExpr1)
 
 printConstraints :: List Constraint -> String
 printConstraints cons = "Subject To" <> (foldl (\acc c -> acc +\+ (printConstraint c)) mempty cons)
@@ -197,3 +203,5 @@ main = do
   --lp <- glp_create_prob
   --pure unit
   log (printProblem exampleProblem2)
+  _ <- pure (glpk_solve_lp $ printProblem exampleProblem2)
+  pure unit
