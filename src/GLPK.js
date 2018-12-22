@@ -12,8 +12,9 @@ exports.pow = function(x) {
 // var glpk = require("glpk.js");
 
 "use strict";
-var glpk = require('../../bower_components/glpk.js/dist/glpk.min.js');
 
+var glpk = require('../../bower_components/glpk.js/dist/glpk.min.js');
+//var glpk = require('glpk');
 /*
 exports.pow = function(x) {
   return function(y) {
@@ -37,11 +38,11 @@ exports.smcp = function(){
 }
 
 exports.glpk_solve_lp = function (str){
-	console.log("HERE")
+	        //console.log("HERE")
             var lp = glpk.glp_create_prob();
-            console.log("HERE");
-            console.log(str);
-            console.log(prog);
+            //console.log("HERE");
+            //console.log(str);
+            //console.log(prog);
             glpk.glp_read_lp_from_string(lp, null, str);
             console.log("HERE")
             glpk.glp_scale_prob(lp, glpk.GLP_SF_AUTO);
@@ -51,11 +52,12 @@ exports.glpk_solve_lp = function (str){
             var iocp = new glpk.IOCP({presolve: glpk.GLP_ON});
             glpk.glp_intopt(lp, iocp);
             console.log("obj: " + glpk.glp_mip_obj_val(lp));
-            console.log("HERE")
+            //console.log("HERE")
             var res = {};
             for(var i = 1; i <= glpk.glp_get_num_cols(lp); i++){
-                console.log(glpk.glp_get_col_name(lp, i)  + " = " + glpk.glp_mip_col_val(lp, i));
+                //console.log(glpk.glp_get_col_name(lp, i)  + " = " + glpk.glp_mip_col_val(lp, i));
                 res[glpk.glp_get_col_name(lp, i)] = glpk.glp_mip_col_val(lp, i);
+                
             }
             return {vars : res, obj : glpk.glp_mip_obj_val(lp)}
         }
